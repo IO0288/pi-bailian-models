@@ -1,14 +1,14 @@
 {
   "name": "pi-bailian-models",
   "version": "1.1.1",
-  "description": "Adds Alibaba Cloud BaiLian Qwen models to pi with OAuth support",
+  "description": "Adds Alibaba Cloud BaiLian models to pi with API key support",
   "keywords": [
     "pi-package",
     "bailian",
     "alibaba",
     "qwen",
     "models",
-    "oauth"
+    "api-key"
   ],
   "type": "module",
   "main": "./index.ts",

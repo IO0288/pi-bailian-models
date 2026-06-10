@@ -27,15 +27,6 @@ export const QWEN_COMPAT = {
 	thinkingFormat: "qwen",
 } as const;
 
-export const DEFAULT_DYNAMIC_MODEL = {
-	reasoning: false,
-	input: ["text"] as const,
-	cost: DEFAULT_COST,
-	contextWindow: 131_072,
-	maxTokens: 16_384,
-	compat: QWEN_COMPAT,
-};
-
 export const MODEL_CAPABILITIES: BailianModel[] = [
 	{
 		id: "deepseek-v4-flash",
