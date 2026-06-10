@@ -1,148 +1,16 @@
 import type { OAuthCredentials } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { DEFAULT_DYNAMIC_MODEL, MODEL_CAPABILITIES, type BailianModel } from "./models.ts";
 
 const TEN_YEARS_MS = 10 * 365 * 24 * 60 * 60 * 1000;
 
-const MODEL_STUDIO_MODELS = [
-	{
-		id: "qwen3.5-plus",
-		name: "qwen3.5-plus",
-		reasoning: true,
-		input: ["text", "image"] as const,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 1_000_000,
-		maxTokens: 65_536,
-    compat: {
-      supportsDeveloperRole: false,      
-      supportsReasoningEffort: false,    
-      maxTokensField: "max_tokens",     
-      requiresToolResultName: true,    
-      requiresMistralToolIds: true,
-      thinkingFormat: "qwen"
-    }
-	},
-	{
-		id: "qwen3-max-2026-01-23",
-		name: "qwen3-max-2026-01-23",
-		reasoning: true,
-		input: ["text"] as const,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 262_144,
-		maxTokens: 65_536,
-    compat: {
-      supportsDeveloperRole: false,      
-      supportsReasoningEffort: false,    
-      maxTokensField: "max_tokens",     
-      requiresToolResultName: true,    
-      requiresMistralToolIds: true,
-      thinkingFormat: "qwen"
-    }
-	},
-	{
-		id: "qwen3-coder-next",
-		name: "qwen3-coder-next",
-		reasoning: true,
-		input: ["text"] as const,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 262_144,
-		maxTokens: 65_536,
-    compat: {
-      supportsDeveloperRole: false,      
-      supportsReasoningEffort: false,    
-      maxTokensField: "max_tokens",     
-      requiresToolResultName: true,    
-      requiresMistralToolIds: true,
-      thinkingFormat: "qwen"
-    }
-	},
-	{
-		id: "qwen3-coder-plus",
-		name: "qwen3-coder-plus",
-		reasoning: true,
-		input: ["text"] as const,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 1_000_000,
-		maxTokens: 65_536,
-    compat: {
-      supportsDeveloperRole: false,      
-      supportsReasoningEffort: false,    
-      maxTokensField: "max_tokens",     
-      requiresToolResultName: true,    
-      requiresMistralToolIds: true,
-      thinkingFormat: "qwen"
-    }
-	},
-	{
-		id: "MiniMax-M2.5",
-		name: "MiniMax-M2.5",
-		reasoning: false,
-		input: ["text"] as const,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 204_800,
-		maxTokens: 131_072,
-    compat: {
-      supportsDeveloperRole: false,      
-      supportsReasoningEffort: false,    
-      maxTokensField: "max_tokens",     
-      requiresToolResultName: true,    
-      requiresMistralToolIds: true,
-      thinkingFormat: "qwen"
-    }
-	},
-	{
-		id: "glm-5",
-		name: "glm-5",
-		reasoning: true,
-		input: ["text"] as const,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 202_752,
-		maxTokens: 16_384,
-    compat: {
-      supportsDeveloperRole: false,      
-      supportsReasoningEffort: false,    
-      maxTokensField: "max_tokens",     
-      requiresToolResultName: true,    
-      requiresMistralToolIds: true,
-      thinkingFormat: "qwen"
-    }
-	},
-	{
-		id: "glm-4.7",
-		name: "glm-4.7",
-		reasoning: true,
-		input: ["text"] as const,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 202_752,
-		maxTokens: 16_384,
-    compat: {
-      supportsDeveloperRole: false,      
-      supportsReasoningEffort: false,    
-      maxTokensField: "max_tokens",     
-      requiresToolResultName: true,    
-      requiresMistralToolIds: true,
-      thinkingFormat: "qwen"
-    }
-	},
-	{
-		id: "kimi-k2.5",
-		name: "kimi-k2.5",
-		reasoning: true,
-		input: ["text", "image"] as const,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 262_144,
-		maxTokens: 32_768,
-    compat: {
-      supportsDeveloperRole: false,      
-      supportsReasoningEffort: false,    
-      maxTokensField: "max_tokens",     
-      requiresToolResultName: true,    
-      requiresMistralToolIds: true,
-      thinkingFormat: "qwen"
-    }
-	},
-];
+type ModelListResponse = {
+	data?: Array<{ id?: unknown; object?: unknown }>;
+};
 
-function createApiKeyCredentials(apiKey: string): Promise<OAuthCredentials> {
+const availableModelIdsCache = new Map<string, Promise<string[] | undefined>>();
+
+function createApiKeyCredentials(apiKey: string): OAuthCredentials {
 	return {
 		access: apiKey,
 		refresh: apiKey,
@@ -150,14 +18,70 @@ function createApiKeyCredentials(apiKey: string): Promise<OAuthCredentials> {
 	};
 }
 
-export default function registerModelStudioProvider(pi: ExtensionAPI): void {
-	pi.registerProvider("百炼 coding-plan", {
-		baseUrl: "https://coding.dashscope.aliyuncs.com/v1",
+function createDefaultModelCapability(id: string): BailianModel {
+	return {
+		id,
+		name: id,
+		...DEFAULT_DYNAMIC_MODEL,
+	};
+}
+
+function getKnownModelMap(): Map<string, BailianModel> {
+	return new Map(MODEL_CAPABILITIES.map((model) => [model.id, model]));
+}
+
+async function fetchAvailableModelIds(baseUrl: string, apiKey: string): Promise<string[] | undefined> {
+	const cacheKey = `${baseUrl}:${apiKey}`;
+	const cached = availableModelIdsCache.get(cacheKey);
+	if (cached) return cached;
+
+	const request = (async () => {
+		const response = await fetch(`${baseUrl}/models`, {
+			headers: {
+				Authorization: `Bearer ${apiKey}`,
+			},
+		});
+
+		if (!response.ok) return undefined;
+
+		const payload = (await response.json()) as ModelListResponse;
+		const ids = payload.data
+			?.map((model) => model.id)
+			.filter((id): id is string => typeof id === "string" && id.length > 0);
+
+		return ids && ids.length > 0 ? ids : undefined;
+	})();
+
+	availableModelIdsCache.set(cacheKey, request);
+	return request;
+}
+
+async function refreshProviderModels(models: BailianModel[], baseUrl: string, apiKey: string): Promise<void> {
+	try {
+		const availableIds = await fetchAvailableModelIds(baseUrl, apiKey);
+		if (!availableIds) return;
+
+		const knownModels = getKnownModelMap();
+		const availableModels = availableIds.map((id) => knownModels.get(id) ?? createDefaultModelCapability(id));
+
+		if (availableModels.length > 0) {
+			models.splice(0, models.length, ...availableModels);
+		}
+	} catch {
+		// Keep the built-in capability list when the provider does not expose /models.
+	}
+}
+
+function registerBailianProvider(pi: ExtensionAPI, name: string, baseUrl: string): void {
+	const models = [...MODEL_CAPABILITIES];
+
+	pi.registerProvider(name, {
+		baseUrl,
 		// apiKey: "DASHSCOPE_API_KEY",
 		api: "openai-completions",
-		models: MODEL_STUDIO_MODELS,
+		models,
 		oauth: {
-			name: "百炼 coding-plan",
+			name,
 
 			async login(callbacks): Promise<OAuthCredentials> {
 				const apiKey = await callbacks.onPrompt({
@@ -169,6 +93,8 @@ export default function registerModelStudioProvider(pi: ExtensionAPI): void {
 				if (trimmed.length === 0) {
 					throw new Error("API key is required.");
 				}
+
+				await refreshProviderModels(models, baseUrl, trimmed);
 
 				return createApiKeyCredentials(trimmed);
 			},
@@ -182,4 +108,9 @@ export default function registerModelStudioProvider(pi: ExtensionAPI): void {
 			},
 		},
 	});
+}
+
+export default function registerModelStudioProvider(pi: ExtensionAPI): void {
+	registerBailianProvider(pi, "百炼 coding-plan", "https://coding.dashscope.aliyuncs.com/v1");
+	registerBailianProvider(pi, "百炼 按量付费", "https://dashscope.aliyuncs.com/compatible-mode/v1");
 }

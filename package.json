@@ -19,6 +19,7 @@
   },
   "files": [
     "index.ts",
+    "models.ts",
     "README.md",
     "package-lock.json"
   ],
