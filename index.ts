@@ -4,12 +4,12 @@ import { MODEL_CAPABILITIES } from "./models.ts";
 function registerBailianProvider(pi: ExtensionAPI, name: string, baseUrl: string): void {
 	pi.registerProvider(name, {
 		baseUrl,
-		apiKey: "DASHSCOPE_API_KEY",
+		apiKey: "$DASHSCOPE_API_KEY",
 		api: "openai-completions",
 		models: MODEL_CAPABILITIES,
 	});
 }
 
 export default function registerModelStudioProvider(pi: ExtensionAPI): void {
-	registerBailianProvider(pi, "BaiLian Pay-as-you-go", "https://dashscope.aliyuncs.com/compatible-mode/v1");
+	registerBailianProvider(pi, "BaiLian", "https://dashscope.aliyuncs.com/compatible-mode/v1");
 }

@@ -1,64 +1,85 @@
-# Pi Agent BaiLian Models / Pi Agent 百炼模型扩展
+# Pi BaiLian Models / Pi 百炼模型扩展
 
-为 Pi 添加阿里云百炼 coding-plan 的 AI 模型支持。
+Adds Alibaba Cloud BaiLian models to Pi through the DashScope OpenAI-compatible API.
 
-Adds Alibaba Cloud BaiLian **coding-plan** models to Pi.
+通过 DashScope OpenAI 兼容接口，为 Pi 添加阿里云百炼模型支持。
 
 <table>
 <tr>
-<td><img src="./screenshot.png" width="400"/></td>
-<td><img src="./screenshot-login.png" width="400"/></td>
+<td><img src="./screenshot.png" width="400" alt="Pi model selector with BaiLian models"/></td>
+<td><img src="./screenshot-login.png" width="400" alt="Pi login provider list"/></td>
 </tr>
 </table>
 
-## 可用模型 / Available Models
+## Features / 功能
 
-| 模型 | 上下文 | 最大输出 | 推理 |
-|------|--------|----------|------|
-| qwen3.5-plus | 1M | 65,536 | ✅ |
-| qwen3-max | 262K | 65,536 | ✅ |
-| qwen3-coder-next | 262K | 65,536 | ✅ |
-| qwen3-coder-plus | 1M | 65,536 | ✅ |
-| MiniMax-M2.5 | 204K | 131,072 | ❌ |
-| glm-5 / glm-4.7 | 202K | 16,384 | ✅ |
-| kimi-k2.5 | 262K | 32,768 | ✅ |
+- Registers the `BaiLian Pay-as-you-go` provider in Pi.
+- Uses DashScope compatible mode: `https://dashscope.aliyuncs.com/compatible-mode/v1`.
+- Reads the API key from Pi's login flow as `DASHSCOPE_API_KEY`.
+- Supports text-only reasoning models from Qwen, DeepSeek, Kimi, MiniMax, and GLM.
+- Provides model metadata for context window, max output tokens, cache pricing, and compatibility flags.
 
-## 安装 / Installation
+## Available Models / 可用模型
 
-**推荐方式 (Recommended):**
+| Model | Context Window | Max Output | Reasoning | Input |
+| --- | ---: | ---: | :---: | :---: |
+| `deepseek-v4-flash` | 1,000,000 | 393,216 | Yes | Text |
+| `deepseek-v4-pro` | 1,000,000 | 393,216 | Yes | Text |
+| `kimi-k2.6` | 262,144 | 16,384 | Yes | Text |
+| `MiniMax/MiniMax-M2.7` | 204,800 | 131,072 | Yes | Text |
+| `qwen3.7-max` | 1,000,000 | 65,536 | Yes | Text |
+| `qwen3.7-max-preview` | 1,000,000 | 65,536 | Yes | Text |
+| `qwen3.7-plus` | 1,000,000 | 65,536 | Yes | Text |
+| `glm-5.1` | 206,848 | 131,072 | Yes | Text |
+
+## Installation / 安装
+
+Install from npm:
+
 ```bash
 pi install npm:pi-bailian-models
 ```
 
-**从源码安装 (From source):**
+Install from source:
+
 ```bash
 pi install git:github.com/rUrU516/pi-bailian-models
 ```
 
-## 更新 / Update
+## Update / 更新
 
 ```bash
 pi update
 ```
 
-## 使用方法 / Usage
+## Usage / 使用方法
 
-1. **进入 Pi 后**，在对话框中输入 `/login`
-2. 选择 **"百炼 coding-plan"** 提供商
-3. 输入你的 **百炼 coding-plan API 密钥**（以 `sk-` 开头）
-4. 之后在模型选择中选择对应的模型即可使用
+1. Start Pi.
+2. Type `/login` in the chat.
+3. Select `BaiLian Pay-as-you-go`.
+4. Enter your BaiLian/DashScope API key. The key is stored by Pi as `DASHSCOPE_API_KEY`.
+5. Pick one of the BaiLian models from the model selector.
 
-> 💡 API 密钥获取：访问 [阿里云百炼控制台 - coding-plan](https://bailian.console.aliyun.com/?tab=codingPlan)
+中文步骤：
 
----
+1. 启动 Pi。
+2. 在对话框中输入 `/login`。
+3. 选择 `BaiLian Pay-as-you-go`。
+4. 输入你的百炼/DashScope API Key，Pi 会按 `DASHSCOPE_API_KEY` 保存。
+5. 在模型选择器中选择需要使用的百炼模型。
 
-**After entering Pi:**
-1. Type `/login` in the chat
-2. Select **"百炼 coding-plan"** provider
-3. Enter your **BaiLian coding-plan API key** (starts with `sk-`)
-4. Select the model you want to use
+Get an API key from the [Alibaba Cloud BaiLian console](https://bailian.console.aliyun.com/).
 
-> 💡 Get API key: [Alibaba Cloud Bailian - coding-plan](https://bailian.console.aliyun.com/?tab=codingPlan)
+## Development / 开发
+
+This package is a Pi extension. The entry point is `index.ts`, which registers the provider and loads model metadata from `models.ts`.
+
+```text
+index.ts    Provider registration
+models.ts   Model capability metadata
+```
+
+Release order is documented in `AGENTS.md`: commit functional or documentation changes first, then bump `package.json` and `package-lock.json`, publish to npm, and commit the version bump.
 
 ## License / 许可证
 
