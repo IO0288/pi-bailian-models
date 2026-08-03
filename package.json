@@ -1,5 +1,5 @@
 {
-  "name": "pi-bailian-models",
+  "name": "pi-models-bailian",
   "version": "1.1.1",
   "description": "Adds Alibaba Cloud BaiLian models to pi with API key support",
   "keywords": [
