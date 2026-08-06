@@ -23,14 +23,9 @@ Adds Alibaba Cloud BaiLian models to Pi through the DashScope OpenAI-compatible 
 
 | Model | Context Window | Max Output | Reasoning | Input |
 | --- | ---: | ---: | :---: | :---: |
-| `deepseek-v4-flash` | 1,000,000 | 393,216 | Yes | Text |
-| `deepseek-v4-pro` | 1,000,000 | 393,216 | Yes | Text |
-| `kimi-k2.6` | 262,144 | 16,384 | Yes | Text |
-| `MiniMax/MiniMax-M2.7` | 204,800 | 131,072 | Yes | Text |
-| `qwen3.7-max` | 1,000,000 | 65,536 | Yes | Text |
-| `qwen3.7-max-preview` | 1,000,000 | 65,536 | Yes | Text |
-| `qwen3.7-plus` | 1,000,000 | 65,536 | Yes | Text |
-| `glm-5.1` | 206,848 | 131,072 | Yes | Text |
+| `qwen3.8-max` | 1,000,000 | 131,072 | Yes | Text + Image |
+| `kimi/kimi-k3` | 1,048,576 | 1,048,576 | Yes | Text + Image |
+| `glm-5.2` | 1,048,576 | 131,072 | Yes | Text |
 
 ## Installation / 安装
 
