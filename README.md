@@ -1,81 +1,116 @@
-# Pi BaiLian Models / Pi 百炼模型扩展
+# Pi 百炼模型扩展
 
-Adds Alibaba Cloud BaiLian models to Pi through the DashScope OpenAI-compatible API.
-
-通过 DashScope OpenAI 兼容接口，为 Pi 添加阿里云百炼模型支持。
+给 Pi 加上阿里云百炼模型。调用走国内 DashScope 的 OpenAI 兼容接口，模型清单来自百炼官方「查询模型列表」接口。
 
 <table>
 <tr>
-<td><img src="./screenshot.png" width="400" alt="Pi model selector with BaiLian models"/></td>
-<td><img src="./screenshot-login.png" width="400" alt="Pi login provider list"/></td>
+<td><img src="./screenshot.png" width="400" alt="Pi 模型选择器中的百炼模型"/></td>
+<td><img src="./screenshot-login.png" width="400" alt="Pi 登录页中的百炼提供商"/></td>
 </tr>
 </table>
 
-## Features / 功能
+## 这个扩展做什么
 
-- Registers the `BaiLian Pay-as-you-go` provider in Pi.
-- Uses DashScope compatible mode: `https://dashscope.aliyuncs.com/compatible-mode/v1`.
-- Reads the API key from Pi's login flow as `DASHSCOPE_API_KEY`.
-- Supports text-only reasoning models from Qwen, DeepSeek, Kimi, MiniMax, and GLM.
-- Provides model metadata for context window, max output tokens, cache pricing, and compatibility flags.
+- 在 Pi 里注册提供商 `BaiLian`。
+- 对话请求发到 `https://dashscope.aliyuncs.com/compatible-mode/v1`。
+- API Key 使用 `DASHSCOPE_API_KEY`（Pi 登录时填写）。
+- `models.ts` 里保存上下文长度、最大输出、缓存价格和兼容标志。
+- 用官方 [查询模型列表](https://help.aliyun.com/zh/model-studio/list-models) 接口刷新这份清单。
 
-## Available Models / 可用模型
+## 安装
 
-| Model | Context Window | Max Output | Reasoning | Input |
-| --- | ---: | ---: | :---: | :---: |
-| `qwen3.8-max` | 1,000,000 | 131,072 | Yes | Text + Image |
-| `kimi/kimi-k3` | 1,048,576 | 1,048,576 | Yes | Text + Image |
-| `glm-5.2` | 1,048,576 | 131,072 | Yes | Text |
-
-## Installation / 安装
-
-Install from npm:
+从 npm 安装：
 
 ```bash
 pi install npm:pi-bailian-models
 ```
 
-Install from source:
+从源码安装：
 
 ```bash
-pi install git:github.com/rUrU516/pi-bailian-models
+pi install git:github.com/io0288/pi-models-bailian
 ```
 
-## Update / 更新
+更新：
 
 ```bash
 pi update
 ```
 
-## Usage / 使用方法
-
-1. Start Pi.
-2. Type `/login` in the chat.
-3. Select `BaiLian Pay-as-you-go`.
-4. Enter your BaiLian/DashScope API key. The key is stored by Pi as `DASHSCOPE_API_KEY`.
-5. Pick one of the BaiLian models from the model selector.
-
-中文步骤：
+## 使用
 
 1. 启动 Pi。
-2. 在对话框中输入 `/login`。
-3. 选择 `BaiLian Pay-as-you-go`。
-4. 输入你的百炼/DashScope API Key，Pi 会按 `DASHSCOPE_API_KEY` 保存。
-5. 在模型选择器中选择需要使用的百炼模型。
+2. 在对话框输入 `/login`。
+3. 选择 `BaiLian`。
+4. 填入百炼 API Key。Pi 会把它存成 `DASHSCOPE_API_KEY`。
+5. 在模型选择器里挑选要使用的百炼模型。
 
-Get an API key from the [Alibaba Cloud BaiLian console](https://bailian.console.aliyun.com/).
+API Key 在 [阿里云百炼控制台](https://bailian.console.aliyun.com/) 申请。
 
-## Development / 开发
+## 模型清单
 
-This package is a Pi extension. The entry point is `index.ts`, which registers the provider and loads model metadata from `models.ts`.
+当前可用模型写在 `models.ts` 的 `MODEL_CAPABILITIES` 里。刷新清单：
 
-```text
-index.ts    Provider registration
-models.ts   Model capability metadata
+```bash
+npm run fetch-models
 ```
 
-Release order is documented in `AGENTS.md`: commit functional or documentation changes first, then bump `package.json` and `package-lock.json`, publish to npm, and commit the version bump.
+脚本默认请求：
 
-## License / 许可证
+```text
+GET https://dashscope.aliyuncs.com/api/v1/models
+  ?features=function-calling
+  &capabilities=Reasoning
+  &providers=qwen,zhipu-ai,mini-max,moonshot-ai,deepseek
+  &page_size=100
+```
+
+也就是：只要支持函数调用、具备深度思考，且来自千问 / 智谱 / MiniMax / Kimi / DeepSeek 的模型。没有文本输入的条目会被跳过。
+
+写入 `models.ts` 时尽量用接口原值：
+
+- `name` 用接口展示名
+- `contextWindow` / `maxTokens` 用 `model_info` 里的官方字段；`max_output_tokens` 为空时再退到思考输出上限
+- 价格用官方 `input_token` / `output_token` / 缓存价；没有普通 token 价时用 `thinking_*` 价
+- 有分档计价时写入 `cost.tiers`
+- Pi 只认 `text` / `image` 输入，所以会丢掉 `Video` / `Audio`
+- `compat` 仍是 Pi 运行时需要的固定配置，接口没有这个字段
+
+密钥读取顺序：
+
+1. 环境变量 `DASHSCOPE_API_KEY`
+2. 命令行 `--api-key`
+3. Pi 已登录的 `BaiLian` Key（`~/.pi/agent/auth.json`）
+
+## 开发
+
+这是一个 Pi 扩展。入口是 `index.ts`，它会注册提供商，并读取 `models.ts` 里的模型元数据。
+
+```text
+index.ts                          注册百炼提供商
+models.ts                         生成后的模型清单
+scripts/fetch-bailian-models.mjs  拉取官方目录并重写 models.ts
+AGENTS.md                         发布顺序
+```
+
+常用命令：
+
+```bash
+npm run fetch-models
+node scripts/fetch-bailian-models.mjs --help
+```
+
+可选参数：
+
+| 参数 | 作用 |
+| --- | --- |
+| `--workspace-id <id>` | 改用业务空间专属域名 |
+| `--format json` | 输出同样结构的 JSON |
+| `--stdout` | 打印到终端，不写文件 |
+| `--source <path>` | 用本地 JSON，不发网络请求 |
+
+发布顺序见 `AGENTS.md`：先提交功能和文档，再改版本号，然后 `npm publish`，最后把版本提交并推送。
+
+## 许可证
 
 MIT

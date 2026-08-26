@@ -12,6 +12,9 @@
   ],
   "type": "module",
   "main": "./index.ts",
+  "scripts": {
+    "fetch-models": "node scripts/fetch-bailian-models.mjs"
+  },
   "pi": {
     "extensions": [
       "./index.ts"
