@@ -19,6 +19,21 @@ const DEFAULT_LANGUAGE = "zh-CN";
 const DEFAULT_FEATURES = ["function-calling"];
 const DEFAULT_CAPABILITIES = ["Reasoning"];
 const DEFAULT_PROVIDERS = ["qwen", "zhipu-ai", "mini-max", "moonshot-ai", "deepseek"];
+const DEFAULT_ID_BLACKLIST = [
+	"deepseek-v3.*", 
+	"deepseek-r1.*", 
+	"kimi-k2.*",
+	"minimax-m2.*",
+	"glm-4.*",
+	"glm-5",
+	"glm-5.1",
+	"qwen-flash.*",
+	"qwen-plus.*",
+	"qwen3-.*",
+	"qwen3.5-.*",
+	"qwen3.6-.*",
+	"qwen3.7-.*",
+];
 const ALLOWED_INPUT = new Set(["text", "image"]);
 const AUTH_CANDIDATES = ["BaiLian", "BaiLian Pay-as-you-go", "百炼 按量付费"];
 const PI_AUTH_FILE = resolve(homedir(), ".pi/agent/auth.json");
@@ -62,6 +77,7 @@ Options:
   --capability <name>      Repeatable filter, default Reasoning
   --feature <name>         Repeatable filter, default function-calling
   --provider <name>        Repeatable filter, default qwen,zhipu-ai,mini-max,moonshot-ai,deepseek
+  --exclude-id <regex>     Repeatable extra model-id blacklist regex
   --source <path>          Local JSON dump instead of HTTP
   --out <path>             Output path (default: models.ts)
   --format <ts|json>       Output format (default: from --out extension, else ts)
@@ -82,6 +98,7 @@ function parseArgs(argv) {
 		capabilities: [],
 		features: [],
 		providers: [],
+		excludeIds: [],
 		source: null,
 		out: DEFAULT_OUT,
 		format: null,
@@ -108,6 +125,7 @@ function parseArgs(argv) {
 			"--capability",
 			"--feature",
 			"--provider",
+			"--exclude-id",
 			"--source",
 			"--out",
 			"--format",
@@ -126,6 +144,7 @@ function parseArgs(argv) {
 			if (arg === "--capability") options.capabilities.push(...splitCsv(value));
 			if (arg === "--feature") options.features.push(...splitCsv(value));
 			if (arg === "--provider") options.providers.push(...splitCsv(value));
+			if (arg === "--exclude-id") options.excludeIds.push(value);
 			if (arg === "--source") options.source = value;
 			if (arg === "--out") options.out = value;
 			if (arg === "--format") options.format = value;
@@ -149,6 +168,7 @@ function parseArgs(argv) {
 	if (options.providers.length === 0) {
 		options.providers = [...DEFAULT_PROVIDERS];
 	}
+	options.idBlacklist = [...DEFAULT_ID_BLACKLIST, ...options.excludeIds];
 
 	return options;
 }
@@ -384,6 +404,24 @@ function mapCost(raw) {
 	return cost;
 }
 
+function compileIdBlacklist(patterns) {
+	return patterns.map((pattern) => {
+		try {
+			return { pattern, regex: new RegExp(String(pattern).toLowerCase()) };
+		} catch {
+			throw new Error(`Invalid id blacklist regex: ${pattern}`);
+		}
+	});
+}
+
+function matchIdBlacklist(id, rules) {
+	const normalized = String(id ?? "").toLowerCase();
+	for (const rule of rules) {
+		if (rule.regex.test(normalized)) return rule.pattern;
+	}
+	return null;
+}
+
 function mapModel(raw) {
 	const id = raw?.model;
 	if (!id) return { skip: "missing model id" };
@@ -419,12 +457,19 @@ function mapModel(raw) {
 	};
 }
 
-function toBailianModels(rawModels) {
+function toBailianModels(rawModels, idBlacklist = DEFAULT_ID_BLACKLIST) {
 	const models = [];
 	const skipped = [];
 	const seen = new Set();
+	const blacklist = compileIdBlacklist(idBlacklist);
 
 	for (const raw of rawModels) {
+		const id = raw?.model ?? "(unknown)";
+		const blocked = matchIdBlacklist(id, blacklist);
+		if (blocked) {
+			skipped.push({ id, reason: `id blacklist: ${blocked}` });
+			continue;
+		}
 		const mapped = mapModel(raw);
 		if (mapped.skip) {
 			skipped.push({ id: raw?.model ?? "(unknown)", reason: mapped.skip });
@@ -590,7 +635,7 @@ async function main() {
 		rawModels = fetched.models;
 	}
 
-	const { models, skipped } = toBailianModels(rawModels);
+	const { models, skipped } = toBailianModels(rawModels, options.idBlacklist);
 	const meta = {
 		source,
 		fetchedAt: new Date().toISOString(),

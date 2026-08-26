@@ -67,6 +67,24 @@ GET https://dashscope.aliyuncs.com/api/v1/models
 
 也就是：只要支持函数调用、具备深度思考，且来自千问 / 智谱 / MiniMax / Kimi / DeepSeek 的模型。没有文本输入的条目会被跳过。
 
+另外有一份内置模型 ID 正则黑名单，命中的条目不会写入 `models.ts`。比对前会把模型 ID 转成小写：
+
+```text
+deepseek-v3.*
+deepseek-r1.*
+kimi-k2.*
+minimax-M2.*
+glm-4.*
+glm-5
+glm-5.1
+qwen-flash.*
+qwen-plus.*
+qwen3-.*
+qwen3.5-.*
+```
+
+需要再排除时，可追加 `--exclude-id <regex>`。
+
 写入 `models.ts` 时尽量用接口原值：
 
 - `name` 用接口展示名
